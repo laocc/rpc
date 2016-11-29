@@ -139,6 +139,7 @@ var_dump($val);
 $url = 'http://rpc.kaibuy.top/server.php';
 $cli = new \laocc\rpc\Client(true);  #true=异步(默认)，false=同步
 $cli->token = 'my token';
+$cli->fork = true;                  #第二个以上任务是否使用新的进程，关于这个是否使用效果更好，暂没太多研究
 
 /**
  * 接收到数据时的回调

@@ -58,60 +58,68 @@ class Client
     public function send(callable $success_call = null, callable $error_call = null)
     {
         foreach ($this->_url as $index => $item) {
+            $pid = ($index === 0 or !$this->fork) ? 0 : pcntl_fork();
 
-            $success_call = $item['success_call'] ?: $success_call;
-            $error_call = $item['error_call'] ?: $error_call;
-            if (is_null($success_call) and $this->_isAsync === false) throw new \Exception('非异步请求，必须提供处理返回数据的回调函数');
-
-            $fp = fsockopen($item['host'], $item['port'], $err_no, $err_str, intval($this->timeout ?: 1));
-            if (!$fp) {
-                if (!is_null($error_call)) {
-                    $error_call($index, $err_no, $err_str);
-                } else {
-                    throw new \Exception($err_str, $err_no);
-                }
+            if ($pid == -1) {
+                die('could not fork');
+            } else if ($pid) {
+                pcntl_wait($status);
             } else {
-                $_data = http_build_query($item['data']);
 
-                $data = "POST {$item['uri']} {$item['version']}\r\n";
-                $data .= "Host:{$item['host']}\r\n";
-                $data .= "Content-type:application/x-www-form-urlencoded\r\n";
-                $data .= "User-Agent:{$item['agent']}\r\n";
-                $data .= "Content-length:" . strlen($_data) . "\r\n";
-                $data .= "Connection:Close\r\n\r\n{$_data}";
+                $success_call = $item['success_call'] ?: $success_call;
+                $error_call = $item['error_call'] ?: $error_call;
+                if (is_null($success_call) and $this->_isAsync === false) throw new \Exception('非异步请求，必须提供处理返回数据的回调函数');
 
-                fwrite($fp, $data);
-                if ($this->_isAsync) {//异步，直接返index，不带数据
-                    if (!is_null($success_call)) {
-                        $success_call($index, null);
+                $fp = fsockopen($item['host'], $item['port'], $err_no, $err_str, intval($this->timeout ?: 1));
+                if (!$fp) {
+                    if (!is_null($error_call)) {
+                        $error_call($index, $err_no, $err_str);
+                    } else {
+                        throw new \Exception($err_str, $err_no);
                     }
                 } else {
-                    if (!is_null($success_call)) {
+                    $_data = http_build_query($item['data']);
 
-                        //接收数据
-                        $value = $tmpValue = '';
-                        $len = null;
-                        while (!feof($fp)) {
-                            $line = fgets($fp);
-                            if ($line == "\r\n" and is_null($len)) {
-                                $len = 0;//已过信息头区
-                            } elseif ($len === 0) {
-                                $len = hexdec($line);//下一行的长度
-                            } elseif (is_int($len)) {
-                                $tmpValue .= $line;//中转数据，防止收到的一行不是一个完整包
-                                if (strlen($tmpValue) >= $len) {
-                                    $value .= substr($tmpValue, 0, $len);
-                                    $tmpValue = '';
-                                    $len = 0;//收包后归0
+                    $data = "POST {$item['uri']} {$item['version']}\r\n";
+                    $data .= "Host:{$item['host']}\r\n";
+                    $data .= "Content-type:application/x-www-form-urlencoded\r\n";
+                    $data .= "User-Agent:{$item['agent']}\r\n";
+                    $data .= "Content-length:" . strlen($_data) . "\r\n";
+                    $data .= "Connection:Close\r\n\r\n{$_data}";
+
+                    fwrite($fp, $data);
+                    if ($this->_isAsync) {//异步，直接返index，不带数据
+                        if (!is_null($success_call)) {
+                            $success_call($index, null);
+                        }
+                    } else {
+                        if (!is_null($success_call)) {
+
+                            //接收数据
+                            $value = $tmpValue = '';
+                            $len = null;
+                            while (!feof($fp)) {
+                                $line = fgets($fp);
+                                if ($line == "\r\n" and is_null($len)) {
+                                    $len = 0;//已过信息头区
+                                } elseif ($len === 0) {
+                                    $len = hexdec($line);//下一行的长度
+                                } elseif (is_int($len)) {
+                                    $tmpValue .= $line;//中转数据，防止收到的一行不是一个完整包
+                                    if (strlen($tmpValue) >= $len) {
+                                        $value .= substr($tmpValue, 0, $len);
+                                        $tmpValue = '';
+                                        $len = 0;//收包后归0
+                                    }
                                 }
                             }
-                        }
-                        //接收结束
+                            //接收结束
 
-                        $success_call($index, $this->data_decode($value));
+                            $success_call($index, $this->data_decode($value));
+                        }
                     }
+                    fclose($fp);
                 }
-                fclose($fp);
             }
         }
         return true;

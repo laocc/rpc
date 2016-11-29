@@ -31,6 +31,12 @@ class UserModel
         //业务代码
         return [$username, $password];
     }
+
+    public function testAction($time)
+    {
+        return getmypid() . '/' . (microtime(true) - $time) * 1000;
+    }
+
 }
 
 $sev = new \laocc\rpc\Server(new UserModel());

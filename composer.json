@@ -1,0 +1,24 @@
+{
+      "name": "laocc/rpc",
+      "description": "PHP RPC Framework",
+      "require": {
+            "php": ">=5.5.0"
+      },
+      "authors": [
+            {
+                  "name": "LaoCC",
+                  "email": "fazo@qq.com"
+            }
+      ],
+      "keywords": [
+            "rpc",
+            "Framework"
+      ],
+      "autoload": {
+            "psr-4": {
+                  "laocc\\rpc\\": "kernel/"
+            }
+      },
+      "type": "library",
+      "license": "LGPL"
+}

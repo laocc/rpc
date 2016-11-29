@@ -1,13 +1,14 @@
-## RPC（Remote Procedure Call Protocol)
+## RPC (Remote Procedure Call Protocol)
 关于RPC概念无须多说，若不了解可以网上找找，资料很多。本程序实现了在PHP中网页之间模拟RPC通信，程序结构受yar的启发，如果需要纯C的RPC调用，请用yar。
 本程序和yar不同之处在于：
 - 可以运行在win环境下
 - 可以异步/同步两种方式发送请求
 - 在设置了TOKEN的情况下自动签名/自动认证
+- 客户端认证简单文本认证
 - Server端可以接收并处理APP发送的数据
 - Server端方法名称设置统一后缀方式(在类yaf框架下特别有用)，可屏蔽一些系统方法，防止被误调用
 - 简化合并了Client两种方式操作
-- Client端指定编码方式(json或serialize)，默认serialize
+- Client端指定编码方式(json或serialize)，也就是两种方法共存，默认serialize
 
 
 ## 使用场景
@@ -20,8 +21,6 @@
 server.php
 ```php
 <?php
-
-
 class UserModel
 {
     /**
@@ -61,7 +60,6 @@ client.php
 
 ```php
 <?php
-
 $url = 'http://rpc.kaibuy.top/server.php';
 $cli = new \laocc\rpc\Client($url);
 $cli->token = 'my token';
@@ -83,11 +81,24 @@ $sev->token = 'my token';           #设置token，若不设置，客户端也�
 $sev->password = 'pwd';             #接口信息访问密码，若不设则禁止查看接口信息，可以设空字串
 $sev->agent = 'ourAgentAuth';       #统一的客户端识别码，见后面介绍
 
-$sev->shield(['loginAction']);      #屏蔽某些方法，被屏蔽后，接口文档中看不到，也不可访问，如果是在框架中，务必屏蔽当前代码所在的函数名，如indexAction
+$sev->shield(['loginAction']);      #屏蔽某些方法，被屏蔽后，接口文档中看不到，也不可访问
 $sev->listen();                     #侦听
 ```
-注：若用在类yaf的框架中，则在indexAction()中`$sev = new \laocc\rpc\Server($this);`，则是一个非常不错的方法。
-
+注：若用在类yaf的框架中，则在indexAction()中则是一个非常不错的方法。
+```php
+<?php
+class UserController
+{
+    public function indexAction(){
+    
+        $sev = new \laocc\rpc\Server($this);
+        $sev->shield(['indexAction']); #务必要屏蔽当前方法
+        #其它设置和上面一样
+        
+        $sev->listen(); 
+    }
+}
+```
 
 
 ### Client端：
@@ -101,7 +112,6 @@ Client端有两种方式：
 #### 单个请求发送（同步模式）
 ```php
 <?php
-
 $url = 'http://rpc.kaibuy.top/server.php';  #Server接口访问地址
 $cli = new \laocc\rpc\Client($url);         #创建Client
 $cli->token = 'my token';                   #设置token
@@ -126,7 +136,6 @@ var_dump($val);
 #### 批量发送（同步/异步可选）
 ```php
 <?php
-
 $url = 'http://rpc.kaibuy.top/server.php';
 $cli = new \laocc\rpc\Client(true);  #true=异步(默认)，false=同步
 $cli->token = 'my token';

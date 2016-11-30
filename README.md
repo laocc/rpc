@@ -173,9 +173,16 @@ $cli->send($callback); #这儿的$callback可以不带
 
 
 #### 设置参数：
-服务器端和客户端，也都可以用下面的方式批量设置相关属性：
+服务器端和客户端，也都可以用下面的方式设置相关属性：
 ```php
 <?php
+
+$cli->token = 'myToken';
+
+#或：
+$cli->set('token','myToken');
+
+#或批量：
 $cli->set([
     'token' => 'myToken',
     'agent' => 'myAgent',

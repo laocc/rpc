@@ -3,6 +3,8 @@ namespace laocc\rpc;
 
 class Server
 {
+    const SIGN_C_S = 1;
+    const SIGN_S_C = 2;
     private $_server;
     private $_option = [];
     private $_shield = [];
@@ -122,19 +124,9 @@ HTML;
             $this->display_server(debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS));
             exit;
         }
-        try {
-
         parse_str(file_get_contents("php://input"), $post);
         empty($post) and exit();
         ob_start();
-
-
-
-        } catch (\Exception $exception) {
-
-            (new \Yac('time'))->set('error', json_encode($exception));
-
-        }
 
         $action = isset($post[$this->_form_key['action']]) ? $post[$this->_form_key['action']] : null;
         $data = isset($post[$this->_form_key['data']]) ? $post[$this->_form_key['data']] : null;
@@ -143,7 +135,7 @@ HTML;
         if (!$this->check_agent()) $this->return_error($type, 1001, '客户端认证失败');
         if (empty($data) or is_null($action)) $this->return_error($type, 1010, '无数据传入');
 
-        if ($this->sign and !Sign::check($this->_form_key['sign'], $this->token, getenv('HTTP_HOST'), $post))
+        if (($this->sign & self::SIGN_C_S) and !Sign::check($this->_form_key['sign'], $this->token, getenv('HTTP_HOST'), $post))
             $this->return_error($type, 1002, '服务端TOKEN验证失败');
 
         if (strpos($action, '_') === 0) $this->return_error($type, 1030, '禁止调用系统方法');
@@ -187,7 +179,7 @@ HTML;
             if (is_array($value)) $value = $array;
         }
         if (!is_array($value)) $value = ['_value_' => $value];
-        if ($this->get('sign', 0) > 1)
+        if ($this->sign & self::SIGN_S_C)
             $value = Sign::create($this->_form_key['sign'], $this->token, getenv('HTTP_HOST'), $value);
 
         ob_end_clean();

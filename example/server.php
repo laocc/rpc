@@ -34,19 +34,10 @@ class UserModel
 
     public function testAction($id, $data)
     {
-        $all = ((microtime(true) - $id) * 1000);
-
-        $str = "time={$all},len=" . strlen($data) / 3;
-
-        (new \Yac('time'))->set('state' . $id, json_encode($_SERVER));
-
         return [
             'len' => strlen($data) / 3,
 //            'data' => $data,
-            'time' => $all,
         ];
-
-
     }
 
 }
@@ -56,6 +47,6 @@ $sev->action = 'Action';
 $sev->token = 'myToken';
 $sev->password = 'pwd';
 $sev->agent = 'myAgent';
-$sev->sign = 2;
+$sev->sign = $sev::SIGN_C_S | $sev::SIGN_S_C;
 //$sev->shield(['loginAction']);
 $sev->listen();

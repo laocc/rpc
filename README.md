@@ -3,7 +3,7 @@
 本程序和yar不同之处在于：
 - 可以运行在win环境下
 - 可以异步/同步两种方式发送请求
-- 在设置了TOKEN的情况下自动签名/自动认证
+- 可设置自动签名认证
 - 客户端认证简单文本认证
 - Server端可以接收并处理APP发送的数据
 - Server端方法名称设置统一后缀方式(在类yaf框架下特别有用)，可屏蔽一些系统方法，防止被误调用
@@ -51,19 +51,18 @@ class UserModel
 $sev = new \laocc\rpc\Server(new UserModel());
 $sev->action = 'Action';
 $sev->token = 'my token';
+$sev->sign = $sev::SIGN_C_S | $sev::SIGN_S_C;
 $sev->password = 'pwd';
 $sev->listen();
-
 ```
 
 client.php
-
 ```php
 <?php
 $url = 'http://rpc.kaibuy.top/server.php';
 $cli = new \laocc\rpc\Client($url);
 $cli->token = 'my token';
-
+$cli->sign = $cli::SIGN_C_S | $cli::SIGN_S_C;
 $val = $cli->register('myName','myPwd');
 var_dump($val);
 
@@ -72,15 +71,14 @@ var_dump($val);
 
 ## 程序文档：
 ### Server端：
-server很简单，总的来说只有2+4个设置:
 ```php
 <?php
 $sev = new \laocc\rpc\Server(new UserModel()); #UserModel是接口真正的类对像
 $sev->action = 'Action';            #设置方法后缀，如此设置之后，registerAction在客户端则只要register即可
-$sev->token = 'my token';           #设置token，若不设置，客户端也不要设
 $sev->password = 'pwd';             #接口信息访问密码，若不设则禁止查看接口信息，可以设空字串
 $sev->agent = 'ourAgentAuth';       #统一的客户端识别码，见后面介绍
-
+$sev->sign = $sev::SIGN_C_S | $sev::SIGN_S_C; #双向都签名，若不要则不设，或只设一个
+$sev->token = 'my token';           #设置token，若不设置，客户端也不要设，若sign没有，则这个也没意义
 $sev->shield(['loginAction']);      #屏蔽某些方法，被屏蔽后，接口文档中看不到，也不可访问
 $sev->listen();                     #侦听
 ```
@@ -114,8 +112,10 @@ Client端有两种方式：
 <?php
 $url = 'http://rpc.kaibuy.top/server.php';  #Server接口访问地址
 $cli = new \laocc\rpc\Client($url);         #创建Client
+$cli->sign = $cli::SIGN_C_S | $cli::SIGN_S_C; #设置sign，同server端
 $cli->token = 'my token';                   #设置token
-$cli->type = 'json';                        #设置编码方式为json，不设置则用serialize
+$cli->type = 'json';                        #设置编码方式为json，不设置则用serialize，建议不设
+$cli->fork = true;                          #第二个以上任务是否使用新的进程，关于这个是否使用效果更好，暂没太多研究
 
 $val = $cli->register('myName','myPwd');    #请求接口方法，register就是上面registerAction
 var_dump($val);
@@ -137,54 +137,62 @@ var_dump($val);
 ```php
 <?php
 $url = 'http://rpc.kaibuy.top/server.php';
-$cli = new \laocc\rpc\Client(true);  #true=异步(默认)，false=同步
-$cli->token = 'my token';
-$cli->fork = true;                  #第二个以上任务是否使用新的进程，关于这个是否使用效果更好，暂没太多研究
+$cli = new \laocc\rpc\Client();
+#设置同上
 
 /**
- * 接收到数据时的回调
+ * 数据回调
  * @param int $index #发送编号，从1开始
  * @param array $value #返回的数据
  */
-$success = function ($index, $value) {
-    var_dump($index, $value);
+$callback = function ($index, $value) {
+    if($value instanceof \Error){
+        throw new \Exception($value->getMessage());
+    }else{
+        var_dump($index, $value);
+    }
 };
 
-/**
- * 出错时的回调
- * @param int $index #发送编号
- * @param int $err_no #错误代码
- * @param string $err_str #错误内容
- */
-$error = function ($index, $err_no, $err_str) {
-    var_dump($index, $err_no, $err_str);
-};
+$cli->call($url, 'test', [1, 2, 3], $callback);   #call()为同步发送并等待数据
+$cli->task($url, 'test', [4, 5]);                 #task()为异步发送不等数据
 
-$cli->append($url, 'test', [1, 2, 3], $success, $error);
-$cli->append($url, 'test', [4, 5]);
-
-$cli->send($success, $error);
+$cli->send($callback); #这儿的$callback可以不带
 
 ```
 - 回调可以在每项中设置(这样可以设置不同的回调)，也可以最后send时一并设置，上面的设置优先级大于send
-- 如果是异步模式，$success回调中$value一直是null，也就是不读取返回值
-- 如果是同步模式，则必须要设置$success回调
+- 如果是异步模式，回调中$value一直是null，也就是不读取返回值
+- 如果是同步模式，则必须要设置回调
+- 如果客户端或服务器端出错，则返回数据是一个\Error类，要先判断数据类型：
 
-##### append参数：
+##### call/task 参数：
 
 1. 服务端URL
 2. 请求的方法名称
-3. 请求的数据，也就是相当于请求方法时的参数，用数组形式，按顺序填入方法的参数，若给的数据少于方法参数，则没分配到的都是null值，这须要注意。
-4. 有数据时的回调
-5. 出错时的回调
+3. 请求的数据，也就是相当于请求方法时的参数，用数组形式，按顺序填入方法的参数，若给的数据少于方法参数，则没分配到的都是null值，这需要注意
+4. 数据回调，若不带，则用最后send的。同步时必须要有回调
+
+
+#### 设置参数：
+服务器端和客户端，也都可以用下面的方式批量设置相关属性：
+```php
+<?php
+$cli->set([
+    'token' => 'myToken',
+    'agent' => 'myAgent',
+    'sign' => $cli::SIGN_C_S | $cli::SIGN_S_C,
+    'fork' => false,
+]);
+```
+
 
 ### 关于URL的说明：
 一个完整的URL格式如下：
 ```
 http://rpc.kaibuy.top:80/server/user.php
 https://rpc.kaibuy.top:443/server/user.php
+http://192.168.1.11/server.php
 ```
-若中80和443是默认端口，可以省略，若不是这种端口，则需要在这URL中指定。
+若中80和443是默认端口，可以省略，若不是这种端口，则需要在这URL中指定。服务器地址可以是IP。也就是一般网页URL没区别。
 
 
 ### 关于agent的说明：

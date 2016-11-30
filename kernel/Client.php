@@ -3,6 +3,8 @@ namespace laocc\rpc;
 
 class Client
 {
+    const SIGN_C_S = 1;
+    const SIGN_S_C = 2;
     private $_option = [];
     private $_task = [];
     private $_sev_url;
@@ -150,9 +152,9 @@ class Client
                         if (is_array($data) and isset($data['_message'])) {
                             $callback($index, new \Error($data['_message'], $data['_type']));
 
-                        } elseif ($this->get('sign', 0) > 1) {//要对返回数据签名验证
+                        } elseif ($this->sign & self::SIGN_S_C) {//要对返回数据签名验证
                             if (!is_array($data)) {
-                                $callback($index, new \Error('返回数据异常', -1));
+                                $callback($index, new \Error("返回数据异常\n{$data}", -1));
 
                             } elseif (!Sign::check($this->_form_key['sign'], $this->token, $item['host'], $data)) {
                                 $callback($index, new \Error('服务端返回数据TOKEN验证失败', 1001));
@@ -179,12 +181,13 @@ class Client
      */
     private function is_url($url, &$match = null)
     {
-        return preg_match('/^(https?)\:\/{2}([a-z][\w\.]+\.[a-z]{2,10})(?:\:(\d+))?(\/.*)?$/i', $url, $match);
+        return preg_match('/^(https?)\:\/{2}((?:(?:[a-z0-9][\w]*\.)+[a-z]{2,10})|(?:(?:(?:(?:1?\d?\d)|(?:2[0-4]\d)|(?:25[0-5]))\.){3}(?:(?:1?\d?\d)|(?:2[0-4]\d)|(?:25[0-5]))))(?:\:(\d+))?(\/.*)?$/i', $url, $match);
     }
 
     private function realUrl($url, $action, $data, $async)
     {
         if (!$this->is_url($url, $info)) throw new \Exception("请求调用地址不是一个合法的URL");
+        print_r($info);
 
         if (!isset($info[3])) $info[3] = 80;
         if (!isset($info[4])) $info[4] = '/';
@@ -203,7 +206,7 @@ class Client
         if ($version === 'HTTP/2.0' and $port === 80) $port = 443;
         elseif ($version === 'HTTP/1.1' and $port === 443) $port = 80;
 
-        if ($this->sign)//加签名
+        if ($this->sign & self::SIGN_C_S)//加签名
             $_data = Sign::create($this->_form_key['sign'], $this->token, $info[2], $_data);
 
         return [
@@ -234,7 +237,7 @@ class Client
             $arr = json_decode($val, true);
             return is_array($arr) ? $arr : $val;
         } else {
-            return @unserialize($val);
+            return @unserialize($val) ?: $val;
         }
     }
 

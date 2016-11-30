@@ -9,9 +9,19 @@ include '../kernel/autoload.php';
 $url = 'http://rpc.kaibuy.top/server.php';
 
 $cli = new \laocc\rpc\Client($url);
-$cli->token = 'my token';
+//$cli->sign = 2;
+$cli->token = 'myToken';
 $cli->agent = 'pwd';
 
 $v = $cli->register('laocc', 'pwd');
 
-var_dump($v, time());
+if ($v instanceof \Error) {
+    echo '错了';
+}
+
+
+if (is_object($v)) {
+    echo '真的错了';
+}
+
+print_r($v);

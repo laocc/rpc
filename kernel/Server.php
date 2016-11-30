@@ -122,50 +122,83 @@ HTML;
             $this->display_server(debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS));
             exit;
         }
+        try {
 
-        if (empty($_POST)) exit();
+        parse_str(file_get_contents("php://input"), $post);
+        empty($post) and exit();
+        ob_start();
 
-        $action = isset($_POST[$this->_form_key['action']]) ? $_POST[$this->_form_key['action']] : null;
-        $data = isset($_POST[$this->_form_key['data']]) ? $_POST[$this->_form_key['data']] : null;
-        $sign = isset($_POST[$this->_form_key['sign']]) ? $_POST[$this->_form_key['sign']] : null;
-        $type = isset($_POST[$this->_form_key['type']]) ? $_POST[$this->_form_key['type']] : 'php';
 
-        if (!$this->check_agent()) exit($this->data_encode($type, '认证失败'));
 
-        $this->sign_check(getenv('HTTP_HOST'), $_POST, $type);
+        } catch (\Exception $exception) {
 
-        if (empty($data) or is_null($action) or is_null($sign)) exit($this->data_encode($type, '无数据传入'));
-        if (strpos($action, '_') === 0) exit($this->data_encode($type, '禁止调用系统方法'));
+            (new \Yac('time'))->set('error', json_encode($exception));
+
+        }
+
+        $action = isset($post[$this->_form_key['action']]) ? $post[$this->_form_key['action']] : null;
+        $data = isset($post[$this->_form_key['data']]) ? $post[$this->_form_key['data']] : null;
+        $type = isset($post[$this->_form_key['type']]) ? $post[$this->_form_key['type']] : 'php';
+
+        if (!$this->check_agent()) $this->return_error($type, 1001, '客户端认证失败');
+        if (empty($data) or is_null($action)) $this->return_error($type, 1010, '无数据传入');
+
+        if ($this->sign and !Sign::check($this->_form_key['sign'], $this->token, getenv('HTTP_HOST'), $post))
+            $this->return_error($type, 1002, '服务端TOKEN验证失败');
+
+        if (strpos($action, '_') === 0) $this->return_error($type, 1030, '禁止调用系统方法');
+
         $action .= $this->action;
-        if (in_array($action, $this->_shield)) exit($this->data_encode($type, "当前服务端{$action}方法不可用"));
+        if (in_array($action, $this->_shield)) $this->return_error($type, 1032, "当前服务端{$action}方法不可用");
 
         if (!method_exists($this->_server, $action) or !is_callable([$this->_server, $action])) {
-            exit($this->data_encode($type, "当前服务端不存在{$action}方法"));
+            $this->return_error($type, 1033, "当前服务端不存在{$action}方法");
         }
 
         $data = $this->data_decode($type, $data);
         if (!is_array($data)) $data = [$data];
 
-
-        ob_start();
         $v = $this->_server->{$action}(...$data + array_fill(0, 10, null));
-        if (!is_null($v)) {//优先取return值
-            ob_end_clean();
-            echo $this->data_encode($type, $v);
-        } else {
-            $v = ob_get_contents();
-            ob_end_clean();
-            echo $this->data_encode($type, $v);
+        if (!empty($error = error_get_last())) {
+            $msg = json_encode($error, 256);
+            error_clear_last();
+            $this->return_error($type, $error['type'], $msg);
         }
+        if (is_null($v)) {
+            $this->return_data($type, ob_get_contents(), true);
+        }
+        $this->return_data($type, $v);
+    }
+
+    private function return_error($type, $code, $value)
+    {
+        $value = ['_type' => 0 - $code, '_message' => $value];
+        ob_end_clean();
+        echo $this->data_encode($type, $value);
         ob_flush();
         exit;
+    }
 
+
+    private function return_data($type, $value, $fromEcho = false)
+    {
+        if ($fromEcho and is_string($value)) {
+            $array = json_decode($value, true);
+            if (is_array($value)) $value = $array;
+        }
+        if (!is_array($value)) $value = ['_value_' => $value];
+        if ($this->get('sign', 0) > 1)
+            $value = Sign::create($this->_form_key['sign'], $this->token, getenv('HTTP_HOST'), $value);
+
+        ob_end_clean();
+        echo $this->data_encode($type, $value);
+        ob_flush();
+        exit;
     }
 
 
     private function check_agent()
     {
-//        var_dump($this->agent);
         $ip = getenv('REMOTE_ADDR');
         $agent = getenv('HTTP_USER_AGENT');
         if (!$agent) return false;
@@ -204,27 +237,21 @@ HTML;
         }
     }
 
-    private function sign_check($host, $arr, $type)
+    public function set($name, $value = null)
     {
-        ksort($arr);
-        $host .= $this->token;
-        foreach ($arr as $k => $v) {
-            if ($k !== $this->_form_key['sign']) $host .= "&{$k}=$v";
+        if (is_array($name)) {
+            $this->_option = $name + $this->_option;
+        } else {
+            $this->_option[$name] = $value;
         }
-        if (!hash_equals(md5($host), $arr['sign'])) exit($this->data_encode($type, 'TOKEN验证失败'));
     }
 
-    public function set(string $name, $value)
+    public function get($name, $autoValue = null)
     {
-        $this->_option[$name] = $value;
+        return isset($this->_option[$name]) ? $this->_option[$name] : $autoValue;
     }
 
-    public function get($name)
-    {
-        return isset($this->_option[$name]) ? $this->_option[$name] : null;
-    }
-
-    public function __set(string $name, $value)
+    public function __set($name, $value)
     {
         $this->_option[$name] = $value;
     }

@@ -1,24 +1,26 @@
 {
-      "name": "laocc/rpc",
-      "description": "PHP RPC Framework",
-      "require": {
-            "php": ">=5.5.0"
-      },
-      "authors": [
-            {
-                  "name": "LaoCC",
-                  "email": "fazo@qq.com"
-            }
-      ],
-      "keywords": [
-            "rpc",
-            "Framework"
-      ],
-      "autoload": {
-            "psr-4": {
-                  "laocc\\rpc\\": "kernel/"
-            }
-      },
-      "type": "library",
-      "license": "LGPL"
+  "name": "laocc/rpc",
+  "description": "PHP RPC Framework",
+  "require": {
+    "php": ">=8.1",
+    "laocc/esp": ">1.0",
+    "laocc/http": ">1.0"
+  },
+  "authors": [
+    {
+      "name": "LaoCC",
+      "email": "fazo@qq.com"
+    }
+  ],
+  "keywords": [
+    "rpc",
+    "Framework"
+  ],
+  "autoload": {
+    "psr-4": {
+      "laocc\\rpc\\": "src/"
+    }
+  },
+  "type": "library",
+  "license": "LGPL"
 }

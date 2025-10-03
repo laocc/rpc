@@ -1,6 +1,6 @@
 {
   "name": "laocc/rpc",
-  "description": "PHP RPC Framework",
+  "description": "PHP RPC Framework by ESP",
   "require": {
     "php": ">=8.1",
     "laocc/esp": ">1.0",
@@ -13,14 +13,11 @@
     }
   ],
   "keywords": [
-    "rpc",
-    "Framework"
+    "rpc"
   ],
   "autoload": {
     "psr-4": {
       "laocc\\rpc\\": "src/"
     }
-  },
-  "type": "library",
-  "license": "LGPL"
+  }
 }

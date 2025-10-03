@@ -4,9 +4,14 @@ declare(strict_types=1);
 namespace laocc\rpc;
 
 use esp\error\Error;
+use esp\helper\library\request\Post;
+use esp\helper\library\Result;
+use esp\core\Controller as CoreController;
 
-abstract class Controller extends \esp\core\Controller
+abstract class Controller extends CoreController
 {
+    protected Post $post;
+    protected Result $result;
 
     /**
      * @return array|void|null
@@ -14,7 +19,7 @@ abstract class Controller extends \esp\core\Controller
      */
     public function _initPost()
     {
-        if (!defined('_RpcToken')) throw new Error('未定义 _RpcToken');
+        if (!defined('_RpcToken')) define('_RpcToken', '_RpcToken');
 
         $timestamp = getenv('HTTP_TIMESTAMP');
         $now = microtime(true);
@@ -30,6 +35,18 @@ abstract class Controller extends \esp\core\Controller
         if ($md5 !== $sign) {
             return ['error' => 1, 'message' => "Rpc签名错误"];
         }
+
+        $this->post = new Post();
+        $this->result = new Result();
+    }
+
+    public function _close($contReturn)
+    {
+        if (!$this->getRequest()->isPost()) return null;
+
+        if (is_string($contReturn)) return $this->result->error($contReturn)->display();
+        else if ($contReturn instanceof Result) return $contReturn->display();
+        else return $this->result->display();
 
     }
 

@@ -15,6 +15,7 @@ class Rpc
 
     public function __construct(string $host, string $ip = '127.0.0.1')
     {
+        if (!defined('_RpcToken'))  define('_RpcToken', '_RpcToken');
         if (!defined('_RpcKey')) define('_RpcKey', _UNIQUE_KEY);
         $port = defined('_RpcPort') ? _RpcPort : 44380;
 

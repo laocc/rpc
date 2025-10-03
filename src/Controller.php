@@ -40,11 +40,7 @@ abstract class Controller extends CoreController
         $this->result = new Result();
 
         if ($controller === 'index' and $action === 'rpc_check') {
-            return [
-                'error' => 0,
-                'message' => "Rpc Success",
-                'data' => $this->post->data()
-            ];
+            return $this->post->data();
         }
 
     }

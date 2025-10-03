@@ -49,14 +49,23 @@ abstract class Controller extends CoreController
 
     }
 
-    public function _close($contReturn)
+    public function _closePost($contReturn)
     {
         if (!$this->getRequest()->isPost()) return null;
         if (!isset($this->result)) return $contReturn;
 
-        if (is_string($contReturn)) return $this->result->error($contReturn)->display();
-        else if ($contReturn instanceof Result) return $contReturn->display();
-        else return $this->result->display();
+        if (is_string($contReturn)) {
+            return $this->result->error($contReturn)->display();
+
+        } else if ($contReturn instanceof Result) {
+            return $contReturn->display();
+
+        } else if (is_array($contReturn)) {
+            return $this->result->data($contReturn)->display();
+
+        } else {
+            return $contReturn;
+        }
 
     }
 

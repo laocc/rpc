@@ -17,7 +17,7 @@ abstract class Controller extends CoreController
      * @return array|void|null
      * @throws Error
      */
-    public function _initPost()
+    public function _initPost(string $controller, string $action)
     {
         if (!defined('_RpcToken')) define('_RpcToken', '_RpcToken');
 
@@ -36,7 +36,7 @@ abstract class Controller extends CoreController
             return ['error' => 1, 'message' => "Rpc签名错误"];
         }
 
-        if ($this->_request->controller === '_rpc_check_') {
+        if ($controller === 'index' and $action === 'rpc_check') {
             return ['error' => 0, 'message' => "Rpc Success"];
         }
 
@@ -47,6 +47,7 @@ abstract class Controller extends CoreController
     public function _close($contReturn)
     {
         if (!$this->getRequest()->isPost()) return null;
+        if (!isset($this->result)) return $contReturn;
 
         if (is_string($contReturn)) return $this->result->error($contReturn)->display();
         else if ($contReturn instanceof Result) return $contReturn->display();

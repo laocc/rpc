@@ -73,7 +73,7 @@ class Rpc
 
     public function check(array $data = [])
     {
-        return $this->request('/_rpc_check_', $data, true);
+        return $this->request('/index/rpc_check', $data, true);
     }
 
     public function debug(callable $fun): void

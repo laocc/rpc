@@ -15,10 +15,12 @@ class Rpc
 
     public function __construct(string $host, string $ip = '127.0.0.1')
     {
+        if (!defined('_RpcKey')) define('_RpcKey', _UNIQUE_KEY);
+        $port = defined('_RpcPort') ? _RpcPort : 44380;
+
         $option = [];
         $option['host_domain'] = $host;
-        $option['host'] = $ip;
-        $option['port'] = _RpcPort;
+        $option['host'] = ["{$host}:{$port}:$ip"];
         $option['timeout'] = 5;
         $option['dns'] = 0;
         $option['domain2ip'] = 0;
@@ -26,15 +28,14 @@ class Rpc
         $option['decode'] = 'json';
         $option['ua'] = 'esp/http http/cURL http/rpc rpc/1.1.2';
 
-        $now = microtime(true);
-        $key = getenv('SERVER_NAME');
+        $now = strval(microtime(true));
 
         $this->http = new Http($option);
         $this->http->headers('timestamp', $now);
-        $this->http->headers('key', $key);
-        $this->http->headers('sign', md5($key . $now . _RpcToken . 'RpcSalt@EspCore'));
+        $this->http->headers('key', _RpcKey);
+        $this->http->headers('sign', md5(_RpcKey . $now . _RpcToken . 'RpcSalt@EspCore'));
 
-        $this->url = sprintf('%s://%s:%s', 'http', $ip, _RpcPort);
+        $this->url = sprintf('%s://%s:%s', 'http', $host, $port);
     }
 
 
@@ -87,6 +88,7 @@ class Rpc
         }
 
         if ($err = $this->result->error(true, $this->_allow)) return $err;
+
         if ($this->result->_decode !== 'json') return $this->result->html();
 
         return $this->result->data();

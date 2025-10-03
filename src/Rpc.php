@@ -17,7 +17,9 @@ class Rpc
     {
         if (!defined('_RpcToken')) define('_RpcToken', '_RpcToken');
         if (!defined('_RpcKey')) define('_RpcKey', _UNIQUE_KEY);
+        if (!defined('_RpcHost')) define('_RpcHost', '.esp');
         $port = defined('_RpcPort') ? _RpcPort : 44380;
+        $host = $host . _RpcHost;
 
         $option = [];
         $option['host_domain'] = $host;
@@ -67,6 +69,11 @@ class Rpc
     public function post(string $uri, array $data = [])
     {
         return $this->request($uri, $data, true);
+    }
+
+    public function check(array $data = [])
+    {
+        return $this->request('/_rpc_check_', $data, true);
     }
 
     public function debug(callable $fun): void

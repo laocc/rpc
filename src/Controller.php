@@ -36,6 +36,10 @@ abstract class Controller extends CoreController
             return ['error' => 1, 'message' => "Rpc签名错误"];
         }
 
+        if ($this->_request->controller === '_rpc_check_') {
+            return ['error' => 0, 'message' => "Rpc Success"];
+        }
+
         $this->post = new Post();
         $this->result = new Result();
     }

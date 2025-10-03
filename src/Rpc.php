@@ -15,7 +15,7 @@ class Rpc
 
     public function __construct(string $host, string $ip = '127.0.0.1')
     {
-        if (!defined('_RpcToken'))  define('_RpcToken', '_RpcToken');
+        if (!defined('_RpcToken')) define('_RpcToken', '_RpcToken');
         if (!defined('_RpcKey')) define('_RpcKey', _UNIQUE_KEY);
         $port = defined('_RpcPort') ? _RpcPort : 44380;
 
@@ -88,6 +88,7 @@ class Rpc
             $this->result = $this->http->get($this->url . $uri);
         }
 
+        if ($this->result->_error === 510) return $this->result->html();
         if ($err = $this->result->error(true, $this->_allow)) return $err;
 
         if ($this->result->_decode !== 'json') return $this->result->html();

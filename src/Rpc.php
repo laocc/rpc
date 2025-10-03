@@ -3,73 +3,40 @@ declare(strict_types=1);
 
 namespace laocc\rpc;
 
-use function esp\core\esp_error;
 use esp\http\Http;
 use esp\http\HttpResult;
 
 class Rpc
 {
-    private string $token = '';
     private array $_allow = [];
     private string $url;
     public Http $http;
     public HttpResult $result;
 
-    public function __construct(array $conf = [])
+    public function __construct(string $host, string $ip = '127.0.0.1')
     {
-        if (empty($conf)) {
-            if (defined('_RPC')) {
-                $conf = _RPC;
-            } else {
-                esp_error('未指定rpc也未定义_RPC');
-            }
-        }
-        $masterIP = defined('_RPC') ? _RPC['ip'] : ($conf['master'] ?? '');
-
-        if (file_exists(_RUNTIME . '/master.lock') and ($conf['ip'] === $masterIP)) {
-            $conf['ip'] = '127.0.0.1';
-        }
-
         $option = [];
-        $option['host_domain'] = $conf['host'];
-        $option['host'] = $conf['ip'];
-        $option['port'] = $conf['port'];
-        $option['timeout'] = intval($conf['timeout'] ?? 5);
-        $option['dns'] = intval($conf['dns'] ?? 0);
-        $option['domain2ip'] = intval($conf['domain2ip'] ?? 0);
+        $option['host_domain'] = $host;
+        $option['host'] = $ip;
+        $option['port'] = _RpcPort;
+        $option['timeout'] = 5;
+        $option['dns'] = 0;
+        $option['domain2ip'] = 0;
         $option['encode'] = 'json';
         $option['decode'] = 'json';
         $option['ua'] = 'esp/http http/cURL http/rpc rpc/1.1.2';
-        if (isset($conf['token'])) $this->token = $conf['token'];
-        if (isset($conf['ua'])) $option['ua'] = $conf['ua'];
+
+        $now = microtime(true);
+        $key = getenv('SERVER_NAME');
 
         $this->http = new Http($option);
-        $this->url = sprintf('%s://%s:%s', 'http', $conf['ip'], $conf['port']);
+        $this->http->headers('timestamp', $now);
+        $this->http->headers('key', $key);
+        $this->http->headers('sign', md5($key . $now . _RpcToken . 'RpcSalt@EspCore'));
+
+        $this->url = sprintf('%s://%s:%s', 'http', $ip, _RpcPort);
     }
 
-    /**
-     * 设置Token，不设不加sign
-     *
-     * @param string $token
-     * @return $this
-     */
-    public function token(string $token)
-    {
-        $this->token = $token;
-        return $this;
-    }
-
-    public function setOption(string $key, string $value): Rpc
-    {
-        $this->http->set($key, $value);
-        return $this;
-    }
-
-    public function setUrl(string $url): Rpc
-    {
-        $this->url = $url;
-        return $this;
-    }
 
     /**
      * 增加额外的headers
@@ -81,18 +48,6 @@ class Rpc
     public function headers(string $key, string $value): Rpc
     {
         $this->http->headers($key, $value);
-        return $this;
-    }
-
-    public function encode(string $code): Rpc
-    {
-        $this->http->encode($code);
-        return $this;
-    }
-
-    public function decode(string $code): Rpc
-    {
-        $this->http->decode($code);
         return $this;
     }
 
@@ -117,40 +72,12 @@ class Rpc
         $fun($this->result);
     }
 
-    public function sign(string $json, string $rand): string
-    {
-        return md5("{$rand}.{$json}.{$this->token}");
-    }
-
-    /**
-     * 签名验证
-     *
-     * @param string $json
-     * @return bool
-     */
-    public function signTrue(string $json): bool
-    {
-        $rand = getenv('HTTP_RAND');
-        $sign = getenv('HTTP_SIGN');
-        if (empty($rand) or empty($sign)) return false;
-        if (empty($this->token)) return false;
-
-        return strval($sign) === $this->sign($json, $rand);
-    }
-
 
     public function request(string $uri, array $data = [], bool $isPost = true)
     {
-        $json = '';
         if ($data) {
             $json = json_encode($data, 320);
             $this->http->data($json);
-        }
-
-        if (isset($this->token)) {
-            $rand = strval(microtime(true));
-            $this->http->headers('rand', $rand);
-            $this->http->headers('sign', $this->sign($json, $rand));
         }
 
         if ($isPost) {

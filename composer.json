@@ -3,7 +3,7 @@
   "description": "PHP RPC Framework by ESP",
   "require": {
     "php": ">=8.1",
-    "laocc/esp": ">1.0",
+    "laocc/esp": ">1.15.0",
     "laocc/helper": ">1.0",
     "laocc/http": ">1.0"
   },

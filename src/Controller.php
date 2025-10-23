@@ -28,9 +28,9 @@ abstract class Controller extends CoreController
         }
         if (_RpcToken === 'not_check') return null;//不检查签名
 
-        $mchKey = getenv('HTTP_KEY');
+        $rpcKey = getenv('HTTP_KEY');
         $sign = getenv('HTTP_SIGN');
-        $md5 = md5($mchKey . $timestamp . _RpcToken . 'RpcSalt@EspCore');
+        $md5 = md5($rpcKey . $timestamp . _RpcToken . 'RpcSalt@EspCore');
 
         if ($md5 !== $sign) {
             return ['error' => 1, 'message' => "Rpc签名错误"];

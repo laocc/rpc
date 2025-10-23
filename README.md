@@ -1,6 +1,19 @@
-## RPC (Remote Procedure Call Protocol)
+# RPC (Remote Procedure Call Protocol)
 
 基于esp，用于快速搭建RPC业务，自动进行身份认定。
+
+注意：若客户端和服务端不是同一台服务器，则要保证两服务器时间相差不得大于5秒以上。
+
+```shell
+
+# 查询服务器当前时间
+date '+%F %T.%9N'
+date '+%F %T.%0N'
+
+ssh root@127.0.0.1 "date '+%F %T.%3N'"
+
+```
+
 
 # 定义几个常量
 
@@ -8,6 +21,7 @@
 
 define('_RpcToken', '_RpcToken');
 # Token，客户端服务端必须一致，不指定则就用默认值`_RpcToken`
+# 若=`not_check`则不检查签名，在多服务器、且业务量比较大的时候，无法做到同时更新所有服务器，则可以采用此方式过渡；
 
 define('_RpcPort', 44380);
 # 端口，若不指定则默认44380，需要在nginx中绑定此端口

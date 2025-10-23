@@ -10,6 +10,7 @@ class Rpc
 {
     private array $_allow = [];
     private string $url;
+    private array $option;
     public Http $http;
     public HttpResult $result;
 
@@ -19,30 +20,38 @@ class Rpc
         if (!defined('_RpcPort')) define('_RpcPort', 44380);
         if (!defined('_RpcKey')) define('_RpcKey', _UNIQUE_KEY);
         if (!defined('_RpcHost')) define('_RpcHost', '.esp');
-
         if (!strpos($host, '.')) $host = $host . _RpcHost;
         $port = _RpcPort;
 
-        $option = [];
-        $option['host_domain'] = $host;
-        $option['host'] = ["{$host}:{$port}:$ip"];
-        $option['timeout'] = 5;
-        $option['dns'] = 0;
-        $option['domain2ip'] = 0;
-        $option['encode'] = 'json';
-        $option['decode'] = 'json';
-        $option['ua'] = 'esp/http http/cURL http/rpc rpc/1.1.2';
+        $this->option = [];
+        $this->option['host_domain'] = $host;
+        $this->option['host'] = ["{$host}:{$port}:$ip"];
+        $this->option['timeout'] = 5;
+        $this->option['dns'] = 0;
+        $this->option['domain2ip'] = 0;
+        $this->option['encode'] = 'json';
+        $this->option['decode'] = 'json';
+//        $this->option['header'] = true;
+        $this->option['ua'] = 'esp/http http/cURL http/rpc rpc/1.1.2';
+    }
 
+    /**
+     * @param array $option
+     * @return Rpc
+     */
+    public function format(array $option = []): Rpc
+    {
+        $option = $option + $this->option;
         $now = strval(microtime(true));
+        $key = $option['key'] ?? _RpcKey;
 
         $this->http = new Http($option);
         $this->http->headers('timestamp', $now);
-        $this->http->headers('key', _RpcKey);
-        $this->http->headers('sign', md5(_RpcKey . $now . _RpcToken . 'RpcSalt@EspCore'));
-
-        $this->url = sprintf('%s://%s:%s', 'http', $host, $port);
+        $this->http->headers('key', $key);
+        $this->http->headers('sign', md5($key . $now . _RpcToken . 'RpcSalt@EspCore'));
+        $this->url = sprintf('%s://%s:%s', 'http', $option['host_domain'], _RpcPort);
+        return $this;
     }
-
 
     /**
      * 增加额外的headers

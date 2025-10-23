@@ -16,10 +16,12 @@ class Rpc
     public function __construct(string $host, string $ip = '127.0.0.1')
     {
         if (!defined('_RpcToken')) define('_RpcToken', '_RpcToken');
+        if (!defined('_RpcPort')) define('_RpcPort', 44380);
         if (!defined('_RpcKey')) define('_RpcKey', _UNIQUE_KEY);
         if (!defined('_RpcHost')) define('_RpcHost', '.esp');
-        $port = defined('_RpcPort') ? _RpcPort : 44380;
-        $host = $host . _RpcHost;
+
+        if (!strpos($host, '.')) $host = $host . _RpcHost;
+        $port = _RpcPort;
 
         $option = [];
         $option['host_domain'] = $host;
@@ -84,9 +86,8 @@ class Rpc
 
     public function request(string $uri, array $data = [], bool $isPost = true)
     {
-        if ($data) {
-            $json = json_encode($data, 320);
-            $this->http->data($json);
+        if (!empty($data)) {
+            $this->http->data(json_encode($data, 320));
         }
 
         if ($isPost) {
@@ -96,6 +97,7 @@ class Rpc
         }
 
         if ($this->result->_error === 510) return $this->result->html();
+
         if ($err = $this->result->error(true, $this->_allow)) return $err;
 
         if ($this->result->_decode !== 'json') return $this->result->html();

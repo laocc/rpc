@@ -14,7 +14,7 @@ class Rpc
     public Http $http;
     public HttpResult $result;
 
-    public function __construct(string $host, string $ip = '127.0.0.1')
+    public function __construct(string $host, string $ip = '127.0.0.1', array $option = [])
     {
         if (!defined('_RpcToken')) define('_RpcToken', '_RpcToken');
         if (!defined('_RpcPort')) define('_RpcPort', 44380);
@@ -22,17 +22,20 @@ class Rpc
         if (!defined('_RpcHost')) define('_RpcHost', '.esp');
         if (!strpos($host, '.')) $host = $host . _RpcHost;
         $port = _RpcPort;
+        if (isset($option['ip'])) $ip = $option['ip'];
+        if (isset($option['port'])) $port = $option['port'];
 
         $this->option = [];
         $this->option['host_domain'] = $host;
         $this->option['host'] = ["{$host}:{$port}:$ip"];
-        $this->option['timeout'] = 5;
+        $this->option['timeout'] = intval($option['timeout'] ?? 5);
         $this->option['dns'] = 0;
         $this->option['domain2ip'] = 0;
         $this->option['encode'] = 'json';
         $this->option['decode'] = 'json';
-//        $this->option['header'] = true;
+        if ($option['header'] ?? 0) $this->option['header'] = true;
         $this->option['ua'] = 'esp/http http/cURL http/rpc rpc/1.1.2';
+        $this->format($option);
     }
 
     /**
@@ -77,7 +80,7 @@ class Rpc
         return $this->request($uri, $data, false);
     }
 
-    public function post(string $uri, array $data = [])
+    public function post(string $uri, array|string $data = [])
     {
         return $this->request($uri, $data, true);
     }
@@ -93,10 +96,14 @@ class Rpc
     }
 
 
-    public function request(string $uri, array $data = [], bool $isPost = true)
+    public function request(string $uri, array|string $data = [], bool $isPost = true)
     {
         if (!empty($data)) {
-            $this->http->data(json_encode($data, 320));
+            if (is_array($data)) {
+                $this->http->data(json_encode($data, 320));
+            } else {
+                $this->http->data($data);
+            }
         }
 
         if ($isPost) {

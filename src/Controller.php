@@ -8,6 +8,9 @@ use esp\helper\library\request\Post;
 use esp\helper\library\Result;
 use esp\core\Controller as CoreController;
 
+/**
+ * Rpc控制器引用此类
+ */
 abstract class Controller extends CoreController
 {
     protected Post $post;

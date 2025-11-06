@@ -33,8 +33,9 @@ class Rpc
         $this->option['domain2ip'] = 0;
         $this->option['encode'] = 'json';
         $this->option['decode'] = 'json';
-        if ($option['header'] ?? 0) $this->option['header'] = true;
         $this->option['ua'] = 'esp/http http/cURL http/rpc rpc/1.1.2';
+        if ($option['header'] ?? 0) $this->option['header'] = true;
+        if (isset($option['ua'])) $this->option['ua'] = $option['ua'];
         $this->format($option);
     }
 

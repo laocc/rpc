@@ -38,6 +38,7 @@ class Rpc
         $this->format($option);
     }
 
+
     /**
      * @param array $option
      * @return Rpc

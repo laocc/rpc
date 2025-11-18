@@ -14,16 +14,20 @@ class Rpc
     public Http $http;
     public HttpResult $result;
 
-    public function __construct(string $host, string $ip = '127.0.0.1', array $option = [])
+    public function __construct(string $host, string $ip = null, array $option = [])
     {
         if (!defined('_RpcToken')) define('_RpcToken', '_RpcToken');
         if (!defined('_RpcPort')) define('_RpcPort', 44380);
         if (!defined('_RpcKey')) define('_RpcKey', _UNIQUE_KEY);
         if (!defined('_RpcHost')) define('_RpcHost', '.esp');
-        if (!strpos($host, '.')) $host = $host . _RpcHost;
         $port = _RpcPort;
         if (isset($option['ip'])) $ip = $option['ip'];
         if (isset($option['port'])) $port = $option['port'];
+        if (empty($ip)) {
+            if (defined('_RpcIp')) $ip = _RpcIp[$host] ?? '127.0.0.1';
+            if (!$ip) $ip = '127.0.0.1';
+        }
+        if (!strpos($host, '.')) $host = $host . _RpcHost;
 
         $this->option = [];
         $this->option['host_domain'] = $host;

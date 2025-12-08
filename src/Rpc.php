@@ -31,7 +31,7 @@ class Rpc
 
         $this->option = [];
         $this->option['host_domain'] = $host;
-        $this->option['host'] = ["{$host}:{$port}:$ip"];
+        $this->option['host'] = ["{$host}:{$port}:{$ip}"];
         $this->option['timeout'] = intval($option['timeout'] ?? 5);
         $this->option['dns'] = 0;
         $this->option['domain2ip'] = 0;
@@ -58,6 +58,7 @@ class Rpc
         $this->http->headers('timestamp', $now);
         $this->http->headers('key', $key);
         $this->http->headers('sign', md5($key . $now . _RpcToken . 'RpcSalt@EspCore'));
+//        $this->http->headers('string', ($key . $now . _RpcToken . 'RpcSalt@EspCore'));
         $this->url = sprintf('%s://%s:%s', 'http', $option['host_domain'], _RpcPort);
         return $this;
     }

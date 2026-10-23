@@ -14,7 +14,7 @@ class Rpc
     public Http $http;
     public HttpResult $result;
 
-    public function __construct(string $host, string $ip = null, array $option = [])
+    public function __construct(string $host, ?string $ip = null, array $option = [])
     {
         if (!defined('_RpcToken')) define('_RpcToken', '_RpcToken');
         if (!defined('_RpcPort')) define('_RpcPort', 44380);
